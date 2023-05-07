@@ -67,6 +67,7 @@ run_crackme() {
 
 password="........"
 returncode=1
+declare -a pids
 
 
 # Loop through A-Z, a-z, and 0-9
@@ -76,7 +77,8 @@ for ((k=0;k<=7;k++)); do
 			c=$(printf "\\$(printf '%03o' $i)")
 			password_test=${password:0:$k}${c}${password:$k+1}
 			echo "attempting $c in current pw $password_test"
-			res=$(run_crackme "$password_test" "$k" &)
+			run_crackme "$password_test" "$k" &
+            pids+=($!)
 			if [[ ! -z $res ]]; then
 				echo "HIT! new pw is $res"
 				password=$res
@@ -84,6 +86,12 @@ for ((k=0;k<=7;k++)); do
 			fi
 		fi
 	done
+    for pid in ${pids[*]}; do
+        wait $pid
+        ret=$?
+        if [[ $ret -eq 0 ]]; then
+            echo "HIT"
+        fi
 done
 wait
 
