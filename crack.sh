@@ -55,12 +55,14 @@ run_crackme() {
 	if [[ $diff -lt 0 ]]; then
 		# echo "SUCCESS $param is correct, $diff < 0"
 		echo $param
+		return 0
 	fi
 
 	#echo $returncode
 	
 	# echo "FAIL $param is not correct, diff=$diff"
 	#returncode=1
+	return 1
 }
 
 password="........"
@@ -75,21 +77,14 @@ for ((k=0;k<=7;k++)); do
 			c=$(printf "\\$(printf '%03o' $i)")
 			password_test=${password:0:$k}${c}${password:$k+1}
 			echo "attempting $c in current pw $password_test"
-			run_crackme "$password_test" "$k" &
-			pids+=($!)
-
-			for pid in "${pids[@]}"; do
-				wait $pid
-				ret=$?
-				if [[ $ret -eq 0 ]]; then
-					match=$(cat "${pid}.out")
-				fi
-			done
+			res=$(run_crackme "$password_test" "$k" &)
+			if [[ ! -z $res ]]; then
+				echo "HIT! new pw is $res"
+				password=$res
+				break
+			fi
 		fi
 	done
-	wait
-	echo match
-	exit
 done
 wait
 
