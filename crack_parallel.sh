@@ -1,15 +1,16 @@
 #!/bin/bash
 
 run_crackme() {
-	param=$1
+	# grab input parameters
+	pw_guess=$1
 	k=$2
 
-	# Start timer
+	# save start for later runtime calculation
 	start=$(date +%s.%N)
 
 	# Run crackme with user input parameter and capture its PID
 	# ignore output
-	./crackme $param > /dev/null 2>&1 &
+	./crackme $pw_guess > /dev/null 2>&1 &
 	pid=$!
 	# echo "PID: $pid"
 	wait $pid
@@ -20,10 +21,10 @@ run_crackme() {
 	runtime=$(echo "($end - $start) * 1000000" | bc | cut -f1 -d'.')
 
 	# use derandomizer to get random number
-	random_number=$(./derandomizer $pid ${param:0:1})
+	random_number=$(./derandomizer $pid ${pw_guess:0:1})
 	rand5=$((random_number%5))
 
-	# calculate random waittime
+	# calculate "random" waittime
 	wait_time=$((($rand5 * 800000))) # / 1000000))
 	# echo "waittime without punishment in s: $wait_time"
 
@@ -35,19 +36,19 @@ run_crackme() {
 
 	#if time diff is below 0 we hit a right char, cause waited less then worstcase
 	if [[ $diff -lt 0 ]]; then
-		# echo "SUCCESS $param is correct, $diff < 0"
-		echo $param > res.txt
+		# echo "SUCCESS $pw_guess is correct, $diff < 0"
+		echo $pw_guess > res.txt
 		return 0
 	fi
 	
-	# echo "FAIL $param is not correct, diff=$diff"
+	# echo "FAIL $pw_guess is not correct, diff=$diff"
 	return 1
 }
 
 password="........"
-declare -a pids
+declare -a pids # array to hold PIDs
 
-# Loop through A-Z, a-z, and 0-9
+# Loop through pw of length 8, each char in A-Z, a-z, or 0-9
 for ((k=0;k<=7;k++)); do
 	echo "current pw: $password - attempting position $k now"
 	for ((i=48;i<=122;i++)); do
@@ -59,6 +60,7 @@ for ((k=0;k<=7;k++)); do
             pids+=($!)
 		fi
 	done
+	# await subprocess returncodes and reread password from file
     for pid in ${pids[*]}; do
         wait $pid
         ret=$?
@@ -69,4 +71,4 @@ for ((k=0;k<=7;k++)); do
 	pids=()
 done
 
-echo "Password is $password"
+echo "password is $password"
