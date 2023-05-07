@@ -1,89 +1,74 @@
 #!/bin/bash
 
-run_crackme() {
-	param=$1
+run_crack() {
+	# grab input parameters
+	pw_guess=$1
 	k=$2
 
-	# echo "current pw is: $param and param k is $k"
-
-	# Start timer
+	# save start for later runtime calculation
 	start=$(date +%s.%N)
 
 	# Run crackme with user input parameter and capture its PID
-	./crackme $param > /dev/null 2>&1 &
+	# ignore output
+	./crackme $pw_guess > /dev/null 2>&1 &
 	pid=$!
 	# echo "PID: $pid"
-
-	# Wait for the crackme process to finish and capture its return value
 	wait $pid
 	ret=$?
 
-	# Stop timer and calculate runtime
-	end=$(date +%s.%N)
-
 	# store runtime as integer in variable
+	end=$(date +%s.%N)
 	runtime=$(echo "($end - $start) * 1000000" | bc | cut -f1 -d'.')
 
-	# Print results
-	# echo "Return value: $ret"
-
-	# echo "PID: $pid"
-
-	random_number=$(./derandomizer $pid ${param:0:1})
-
-	# echo "random number: $random_number"
+	# use derandomizer to get random number
+	random_number=$(./derandomizer $pid ${pw_guess:0:1})
 	rand5=$((random_number%5))
 
-	# echo "rand % 5 = $rand5"
+	# calculate "random" waittime
 	wait_time=$((($rand5 * 800000))) # / 1000000))
-
 	# echo "waittime without punishment in s: $wait_time"
 
-	#punishment_time=$((($k*800000))) # / 1000000))
-	punishment_time=$(((((8-$k))*800000))) # / 1000000))
-
-	# echo "punishment time is $punishment_time"
+	# calculate punishment time, 8 is the worst case and we know that k chars are correct
+	punishment_time=$(((((8-$k))*800000))) 
 
 	# echo "worstcase waittime is: $(($wait_time + $punishment_time))"
 	diff=$(($runtime - ($wait_time + $punishment_time)))
 
-	# echo "Runtime: $runtime"
-	# echo "diff for $param is: $diff"
-
-	declare -g abc="xyz"
-
+	#if time diff is below 0 we hit a right char, cause waited less then worstcase
 	if [[ $diff -lt 0 ]]; then
-		# echo "SUCCESS $param is correct, $diff < 0"
-		echo $param
+		# echo "SUCCESS $pw_guess is correct, $diff < 0"
+		echo $pw_guess > res.txt
 		return 0
 	fi
-
-	#echo $returncode
 	
-	# echo "FAIL $param is not correct, diff=$diff"
-	#returncode=1
+	# echo "FAIL $pw_guess is not correct, diff=$diff"
 	return 1
 }
 
 password="........"
-returncode=1
+declare -a pids # array to hold PIDs
 
-
-# Loop through A-Z, a-z, and 0-9
+# Loop through pw of length 8, each char in A-Z, a-z, or 0-9
 for ((k=0;k<=7;k++)); do
-	for ((i=48;i<=122;i++)); do #48 57 65,90 97,122
+	echo "current pw: $password - attempting position $k now"
+	for ((i=48;i<=122;i++)); do
 		if ((i>=48 && i<=57)) || ((i>=65 && i<=90)) || ((i>=97 && i<=122)); then
 			c=$(printf "\\$(printf '%03o' $i)")
 			password_test=${password:0:$k}${c}${password:$k+1}
-			echo "attempting $c in current pw $password_test"
-			res=$(run_crackme "$password_test" "$k" &)
-			if [[ ! -z $res ]]; then
-				echo "HIT! new pw is $res"
-				password=$res
-				break
-			fi
+			#echo "attempting $c in current pw $password_test on pos $k"
+			run_crack "$password_test" "$k" &
+            pids+=($!)
 		fi
 	done
+	# await subprocess returncodes and reread password from file
+    for pid in ${pids[*]}; do
+        wait $pid
+        ret=$?
+        if [[ $ret -eq 0 ]]; then
+			password=$(cat res.txt)
+        fi
+	done
+	pids=()
 done
-wait
 
+echo "password is $password"
