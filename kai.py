@@ -1,10 +1,9 @@
 import subprocess
-
+import time
 from ctypes import CDLL
 
-import time
 
-#testet passwörter variabler länge bis der gewünschte returncode auftritt
+#testet passwoerter variabler laenge bis der gewuenschte returncode auftritt
 def get_pw_len(path):
     args = [path]
     len = 1
@@ -16,7 +15,7 @@ def get_pw_len(path):
         args.append(input)
         process = subprocess.Popen(args, stdout=subprocess.PIPE)
         args.pop()        
-        process.communicate()[0] #wird benötigt um den returncode abzufragen
+        process.communicate()[0] #wird benoetigt um den returncode abzufragen
         result = process.returncode
 
         if(result != 1):
@@ -24,7 +23,7 @@ def get_pw_len(path):
         
     return len
 
-#probiert alle zulässigen eingaben durch
+#probiert alle zulaessigen eingaben durch
 def try_all_allowed_inputs(path, len):
     result = []
 
@@ -48,8 +47,8 @@ def try_all_allowed_inputs(path, len):
 
     return result
 
-#ruft die crackme mit dem gewünschten input auf und misst die antwortszeit
-#berechnet den punishment faktor wenn dieser kleiner ist als die Länge des Inputs 
+#ruft die crackme mit dem gewuenschten input auf und misst die antwortszeit
+#berechnet den punishment faktor wenn dieser kleiner ist als die Laenge des Inputs 
 #wissen wir das wir einen Hit haben und der getestete Buchstabe teil des Passworts ist
 def test_input(input):
     Flag = False
@@ -60,7 +59,7 @@ def test_input(input):
     elapsed_time = (end-start)
     random = get_c_rand(process.pid + ord(input[1][0])) #change ord(letter) to input[1][0]
     punishment = (elapsed_time - 0.8*random)/0.8
-    if(punishment < len(input[1])): #len hier einfügen
+    if(punishment < len(input[1])): #len hier einfuegen
         Flag = True
     print("Elapsed Time: " + str(elapsed_time) + " Random: " + str(random)+ " Punishment: " + str(punishment) + " Flag: " + str(Flag) + " Tested: " + input[1])
     return Flag
@@ -73,7 +72,7 @@ def get_c_rand(seed):
     return random
 
 #jetzt werden die vorher in try_all_allowed_inputs ermittelten buchstaben an die richtige stelle gebracht
-#dafür werden die ermittelten buchstaben mit "?" kombiniert -> wenn punishment wieder < len dann richtige stelle ermittelt
+#dafuer werden die ermittelten buchstaben mit "?" kombiniert -> wenn punishment wieder < len dann richtige stelle ermittelt
 def get_order_of_letters(letters, path):
     result = {}
     input = []
@@ -111,7 +110,7 @@ def get_order_of_letters(letters, path):
 def main():
     start = time.time()
     #hier muss der path angepasst werden!
-    path = "/Users/janhinrichs/uni/itsec/crackme"
+    path = "/home/kai/dev/ITSEC_LAB1/crackme"
     pw_len = get_pw_len(path)
     letters = try_all_allowed_inputs(path, pw_len)
 
