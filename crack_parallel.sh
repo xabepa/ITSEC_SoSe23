@@ -55,6 +55,7 @@ run_crackme() {
 	if [[ $diff -lt 0 ]]; then
 		# echo "SUCCESS $param is correct, $diff < 0"
 		echo $param
+		echo $param > res.txt
 		return 0
 	fi
 
@@ -72,26 +73,23 @@ declare -a pids
 
 # Loop through A-Z, a-z, and 0-9
 for ((k=0;k<=7;k++)); do
-	for ((i=48;i<=122;i++)); do #48 57 65,90 97,122
+	for ((i=48;i<=122;i++)); do
 		if ((i>=48 && i<=57)) || ((i>=65 && i<=90)) || ((i>=97 && i<=122)); then
 			c=$(printf "\\$(printf '%03o' $i)")
 			password_test=${password:0:$k}${c}${password:$k+1}
-			echo "attempting $c in current pw $password_test"
+			echo "attempting $c in current pw $password_test on pos $k"
 			run_crackme "$password_test" "$k" &
             pids+=($!)
-			if [[ ! -z $res ]]; then
-				echo "HIT! new pw is $res"
-				password=$res
-				break
-			fi
 		fi
 	done
     for pid in ${pids[*]}; do
         wait $pid
         ret=$?
         if [[ $ret -eq 0 ]]; then
-            echo "HIT"
+			password=$(cat res.txt)
         fi
+	done
+	pids=()
 done
-wait
 
+echo "Password is $password"
