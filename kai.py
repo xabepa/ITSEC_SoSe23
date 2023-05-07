@@ -90,7 +90,7 @@ def get_order_of_letters(letters, path):
         input.append(input_list)
     
     #magic
-    #hier werden sie wirklich getestet und anschließend mit ihrer stelle in ein dict gespeichert
+    #hier werden sie wirklich getestet und anschliessend mit ihrer stelle in ein dict gespeichert
     for i in range(0, len(input)):
         for j in range(0, len(input[i])):
             Flag = test_input([path, input[i][j]])
