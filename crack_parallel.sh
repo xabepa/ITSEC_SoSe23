@@ -26,7 +26,6 @@ run_crackme() {
 
 	# Print results
 	# echo "Return value: $ret"
-
 	# echo "PID: $pid"
 
 	random_number=$(./derandomizer $pid ${param:0:1})
@@ -39,45 +38,35 @@ run_crackme() {
 
 	# echo "waittime without punishment in s: $wait_time"
 
-	#punishment_time=$((($k*800000))) # / 1000000))
-	punishment_time=$(((((8-$k))*800000))) # / 1000000))
-
-	# echo "punishment time is $punishment_time"
+	punishment_time=$(((((8-$k))*800000))) 
 
 	# echo "worstcase waittime is: $(($wait_time + $punishment_time))"
 	diff=$(($runtime - ($wait_time + $punishment_time)))
 
-	# echo "Runtime: $runtime"
 	# echo "diff for $param is: $diff"
 
-	declare -g abc="xyz"
-
+	#if time diff is below 0 we hit a right char, cause waited less then worstcase
 	if [[ $diff -lt 0 ]]; then
 		# echo "SUCCESS $param is correct, $diff < 0"
-		echo $param
 		echo $param > res.txt
 		return 0
 	fi
-
-	#echo $returncode
 	
 	# echo "FAIL $param is not correct, diff=$diff"
-	#returncode=1
 	return 1
 }
 
 password="........"
-returncode=1
 declare -a pids
-
 
 # Loop through A-Z, a-z, and 0-9
 for ((k=0;k<=7;k++)); do
+	echo "current pw: $password - attempting position $k now"
 	for ((i=48;i<=122;i++)); do
 		if ((i>=48 && i<=57)) || ((i>=65 && i<=90)) || ((i>=97 && i<=122)); then
 			c=$(printf "\\$(printf '%03o' $i)")
 			password_test=${password:0:$k}${c}${password:$k+1}
-			echo "attempting $c in current pw $password_test on pos $k"
+			#echo "attempting $c in current pw $password_test on pos $k"
 			run_crackme "$password_test" "$k" &
             pids+=($!)
 		fi
