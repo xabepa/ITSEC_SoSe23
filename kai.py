@@ -110,7 +110,7 @@ def get_order_of_letters(letters, path):
 def main():
     start = time.time()
     #hier muss der path angepasst werden!
-    path = "/home/kai/dev/ITSEC_LAB1/crackme"
+    path = "./crackme"
     pw_len = get_pw_len(path)
     letters = try_all_allowed_inputs(path, pw_len)
 
