@@ -35,6 +35,27 @@ def main():
     
     print(send_request(encode_to_b64_url(hex_str_to_bytes(empty_block + last_block))).text)
 
+    crack(blocks[-1])
+
+
+def crack(crack_block: str):
+
+    crack_block = hex_str_to_bytes(crack_block)
+    
+    print(f"attempting crack for block: {crack_block}")
+
+    change_block = bytearray(16)
+
+    for i in range(0, 256):
+        change_block[-1] = i
+
+        res = send_request(encode_to_b64_url(change_block + crack_block)).status_code
+
+        print(f"{i} status is: {res}")
+
+        if res == 200:
+            print(f"found byte: {i}")
+            break
 
 
 def encode_to_b64_url(byte_arr: bytes):
@@ -64,6 +85,6 @@ def bytes_to_hex_str(byte_arr: bytes):
     return hex_str
 
 def hex_str_to_bytes(str):
-    return bytes.fromhex(str)
+    return bytearray.fromhex(str)
 
 main()
