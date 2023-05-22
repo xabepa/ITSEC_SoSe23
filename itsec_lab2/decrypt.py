@@ -1,112 +1,103 @@
 import base64
-from turtle import pos
 from urllib import parse
-from numpy import byte
 import requests
 
+# this is the original secret
+SECRET = "2QicDQHnGmRuZys0M5JcwCSTeFNXvVm%2FSsG1vaEkIZU1OiGgpLJTdbRO2beA831a0xsatfOy01N38W1RidzrXA%3D%3D"
 
 
 def main():
-    # this is the original secret
-    secret = "2QicDQHnGmRuZys0M5JcwCSTeFNXvVm%2FSsG1vaEkIZU1OiGgpLJTdbRO2beA831a0xsatfOy01N38W1RidzrXA%3D%3D"
-
-    # this is the secret after URL-decoding (replace %2F with / and %3D with =)
-    e1 = "2QicDQHnGmRuZys0M5JcwCSTeFNXvVm/SsG1vaEkIZU1OiGgpLJTdbRO2beA831a0xsatfOy01N38W1RidzrXA=="
-
-    # url-decode the secret
-    url_decoded_str = parse.unquote(secret)
-
-    # check whether decoded secret is equal to e1
-    print(f"unquoted: {url_decoded_str}")
+    # url-decode the secret (remove the %2F and %3D)
+    url_decoded_str = parse.unquote(SECRET)
 
     # base64-decode the secret
-    hex_chifre_str = base64.b64decode(url_decoded_str)
+    hex_chiffre_str = base64.b64decode(url_decoded_str)
 
-    print(bytes_to_hex_str(hex_chifre_str))
+    # split the decoded secret into blocks of 16 bytes
+    blocks = get_blocks(bytes_to_hex_str(hex_chiffre_str))
 
-    blocks = get_blocks(bytes_to_hex_str(hex_chifre_str))
+    cracktool_block = bytearray(16)
+    intermed_arr = bytearray(16)
+    block_plaintext = bytearray(16)
+    total_plaintext_result = bytearray()
 
-    last_block = str(blocks[-1])
-    print(f"last_block = {last_block}")
-
-    print(send_request(encode_to_b64_url(hex_chifre_str)))
-
-    change_block = bytearray(16)
-    intermediate_array = bytearray(16)
-    plain_arr = bytearray(16)
-    plain_result = bytearray()
-
-    print(len(blocks))
-
-
+    # loop through blocks from last to first
     for m in range(1, len(blocks)):
-        print(f"cracking block {m}")
+        print(f"cracking block {m} of {len(blocks)-1}...")
+
         for i in range(1, 17):
+            result = crack_byte_of_cipher_block(
+                previous_cipher_block=blocks[-m-1],
+                cipher_block=blocks[-m],
+                cracktool_block=cracktool_block, 
+                index=i, 
+                intermed_arr=intermed_arr
+            
+            )
+            block_plaintext[-i] = result["plain_byte"]
+            intermed_arr = result["int_arr"]
 
-            res = crack(leading_block=blocks[-m-1], crack_block=blocks[-m], change_block=change_block, position=i, intermediate_array=intermediate_array)
-            plain_arr[-i] = res["plain_byte"]
-            intermediate_array = res["int_arr"]
-            #fix this, needs to set change block so that it produces the correct padding for the next iteration
-            change_block = prepare_change_block(intermediate_array, i)
-        print(f"plain_arr after block {m}: {str(plain_arr)}")
-        plain_result = plain_arr + plain_result
-        plain_arr = bytearray(16)
-        print(f"plain_result after block {m}: {plain_result}\n\n")
+            cracktool_block = prepare_cracktool_block(intermed_arr, i)
+            print(f"current block result: {str(block_plaintext)}")
 
-    print(plain_result)
-    # print(str(plain_arr))
+        total_plaintext_result = block_plaintext + total_plaintext_result
+        block_plaintext = bytearray(16)
+        print(f"result after block {m}: {total_plaintext_result}\n\n")
+
+    print(f"decrypting done. plaintext is: {str(total_plaintext_result)}")
 
 
-def crack(leading_block: str, crack_block: str, change_block: bytearray, position: int, intermediate_array: bytearray):
+def crack_byte_of_cipher_block(previous_cipher_block: str, cipher_block: str, cracktool_block: bytearray, index: int, intermed_arr: bytearray):
 
-    crack_block = hex_str_to_bytes(crack_block)
-    leading_block = hex_str_to_bytes(leading_block)
+    cipher_block = hex_str_to_bytes(cipher_block)
+    previous_cipher_block = hex_str_to_bytes(previous_cipher_block)
     
-    print(f"attempting crack...pos: {position}\nblock: {crack_block}\nchange_block: {change_block}\nint_arr: {intermediate_array}")
+    print(f"attempting crack...pos: {index}\nblock: {cipher_block}\nchange_block: {cracktool_block}\nint_arr: {intermed_arr}")
 
-    for i in range(0, 256):
-        change_block[-position] = i
+    for byte_value in range(0, 256):
+        cracktool_block[-index] = byte_value
 
-        res = send_request(encode_to_b64_url(change_block + crack_block)).status_code
+        response = send_request(encode_to_b64_url(cracktool_block + cipher_block))
 
-        if res == 200: #valid padding
-            hit = i
-            intermediate_byte = hit ^ position
+        print(f"response text: {response.text}")
 
-            intermediate_array[-position] = intermediate_byte
-            next_byte = intermediate_byte ^ position + 1
+        http_status_return = response.status_code
 
-            plain_byte = intermediate_byte ^ leading_block[-position]
+        if http_status_return == 200: #valid padding
+            matched_value = byte_value
+            intermed_byte = matched_value ^ index
+            intermed_arr[-index] = intermed_byte
+
+            # reverse the XOR with the intermediate byte and the leading block byte to get the plaintext byte
+            plaintext_byte = intermed_byte ^ previous_cipher_block[-index]
 
             # we need a bytearray which represents intermediate array to calculate change_block values for next iteration
-            print(f"XOR of found byte {format(hit, '02x')} ({format(hit, '#010b')}) and {format(position, '02x')} ({format(position, '#010b')}) is: {format(hit ^ position, '02x')} ({format(hit ^ position, '#010b')})")
-            print(f"Which means that plaintext byte on pos {position} is hex: {format(plain_byte, '02x')}, char: {chr(plain_byte)}")
-            print(f"for next iteration you should choose {format(next_byte, '02x')} as byte on pos {position} in change_block to produce padding value {format(position+1, '02x')}\n")
-            return {"int_arr": intermediate_array, "plain_byte": plain_byte}
+            # print(f"XOR of found byte {format(matched_value, '02x')} ({format(matched_value, '#010b')}) and {format(index, '02x')} ({format(index, '#010b')}) is: {format(matched_value ^ index, '02x')} ({format(matched_value ^ index, '#010b')})")
+            # print(f"Which means that plaintext byte on pos {index} is hex: {format(plaintext_byte, '02x')}, char: {chr(plaintext_byte)}")
+            return {"int_arr": intermed_arr, "plain_byte": plaintext_byte}
         
-    print("no byte found. this is not supposed to happen. exiting...")
+    print("no byte found. this is not supposed to happen. maybe your crack_tool_block is wrong? exiting...")
     exit(1)
 
 # after every iteration we need a new change block to produce the correct padding for the next iteration
 # if attempting to crack position 5, we need to set the last 5 bytes of the change block to x05
 # this is done by XOR the last 5 bytes of the intermediate array with x05, which gives the values we need on the change block
-def prepare_change_block(intermediate_array: bytearray, position: int):
-    print(f"preparing change_block for pos {position + 1}")
-    change_block = bytearray(16)
+def prepare_cracktool_block(intermediate_array: bytearray, index: int):
+    block = bytearray(16)
 
-    for i in range(1, position+1):
-        res = intermediate_array[-i] ^ (position + 1)
+    for i in range(1, index+1):
+        res = intermediate_array[-i] ^ (index + 1)
         #print(f"setting value on pos {-i} to {format(res, '02x')} in changeblock")
-        change_block[-i] = res
-    print(f"prepared change_block: {change_block}")
-    return change_block
+        block[-i] = res
+    print(f"done preparing change_block for pos {index}...")
+    return block
 
-def encode_to_b64_url(byte_arr: bytes):
+def encode_to_b64_url(byte_arr: bytes) -> str: 
     tmp = base64.b64encode(byte_arr)
     return parse.quote(tmp, safe='')
 
 
-def send_request(encoded_str):
+def send_request(encoded_str: str):
     BASE_URL = "http://gruenau2.informatik.hu-berlin.de:8888/store_secret/?secret="
 
     return requests.get(BASE_URL + encoded_str)
