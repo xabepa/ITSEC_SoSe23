@@ -28,12 +28,7 @@ def main():
     last_block = str(blocks[-1])
     print(f"last_block = {last_block}")
 
-    empty_block = bytes(16)
-    empty_block = bytes_to_hex_str(empty_block)
-
     print(send_request(encode_to_b64_url(hex_chifre_str)))
-    
-    print(send_request(encode_to_b64_url(hex_str_to_bytes(empty_block + last_block))).text)
 
     crack(blocks[-1])
 
