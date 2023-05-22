@@ -16,50 +16,57 @@ def main():
     # split the decoded secret into blocks of 16 bytes
     blocks = get_blocks(bytes_to_hex_str(hex_chiffre_str))
 
+    # prepare some variables
     cracktool_block = bytearray(16)
     intermed_arr = bytearray(16)
     block_plaintext = bytearray(16)
-    total_plaintext_result = bytearray()
+    total_plaintext = bytearray()
 
     # loop through blocks from last to first
     for m in range(1, len(blocks)):
         print(f"cracking block {m} of {len(blocks)-1}...")
 
+        #loop bytes of current block from first to last
         for i in range(1, 17):
+
+            #prepare the cracktool_block to produce correct padding for current index when XOR'ed with intermediate array
+            cracktool_block = prepare_cracktool_block(intermed_arr, i)
+
+            # crack the current byte
             result = crack_byte_of_cipher_block(
                 previous_cipher_block=blocks[-m-1],
                 cipher_block=blocks[-m],
-                cracktool_block=cracktool_block, 
-                index=i, 
+                cracktool_block=cracktool_block,
+                index=i,
                 intermed_arr=intermed_arr
             
             )
+            
+            # save new plaintext character and new intermediate array value for next iteration
             block_plaintext[-i] = result["plain_byte"]
             intermed_arr = result["int_arr"]
 
-            cracktool_block = prepare_cracktool_block(intermed_arr, i)
-            print(f"current block result: {str(block_plaintext)}")
+            print(f"\nblocklevel plaintext on index {i} of 16: {block_plaintext[-i:].decode('utf-8')}\n")
 
-        total_plaintext_result = block_plaintext + total_plaintext_result
-        block_plaintext = bytearray(16)
-        print(f"result after block {m}: {total_plaintext_result}\n\n")
+        total_plaintext = block_plaintext + total_plaintext
+        block_plaintext = bytearray(16) #reset
+        print(f"bytearray decryption result for block {m}: {total_plaintext}\n\n")
 
-    print(f"decrypting done. plaintext is: {str(total_plaintext_result)}")
+    print(f"decrypting done. plaintext is: {total_plaintext.decode('utf-8')}\nbytearray: {str(total_plaintext)}")
 
 
 def crack_byte_of_cipher_block(previous_cipher_block: str, cipher_block: str, cracktool_block: bytearray, index: int, intermed_arr: bytearray):
 
+    # prepare strings
     cipher_block = hex_str_to_bytes(cipher_block)
     previous_cipher_block = hex_str_to_bytes(previous_cipher_block)
     
-    print(f"attempting crack...pos: {index}\nblock: {cipher_block}\nchange_block: {cracktool_block}\nint_arr: {intermed_arr}")
+    print(f"attempting crack...index: {index}\ncipher_block: {cipher_block}\ncracktool_block: {cracktool_block}\nint_arr: {intermed_arr}")
 
     for byte_value in range(0, 256):
         cracktool_block[-index] = byte_value
 
         response = send_request(encode_to_b64_url(cracktool_block + cipher_block))
-
-        print(f"response text: {response.text}")
 
         http_status_return = response.status_code
 
@@ -76,7 +83,7 @@ def crack_byte_of_cipher_block(previous_cipher_block: str, cipher_block: str, cr
             # print(f"Which means that plaintext byte on pos {index} is hex: {format(plaintext_byte, '02x')}, char: {chr(plaintext_byte)}")
             return {"int_arr": intermed_arr, "plain_byte": plaintext_byte}
         
-    print("no byte found. this is not supposed to happen. maybe your crack_tool_block is wrong? exiting...")
+    print("no matching byte found. this is not supposed to happen. maybe your cracktool_block is wrong? exiting...")
     exit(1)
 
 # after every iteration we need a new change block to produce the correct padding for the next iteration
@@ -85,21 +92,19 @@ def crack_byte_of_cipher_block(previous_cipher_block: str, cipher_block: str, cr
 def prepare_cracktool_block(intermediate_array: bytearray, index: int):
     block = bytearray(16)
 
-    for i in range(1, index+1):
-        res = intermediate_array[-i] ^ (index + 1)
+    for i in range(1, index):
+        res = intermediate_array[-i] ^ (index)
         #print(f"setting value on pos {-i} to {format(res, '02x')} in changeblock")
         block[-i] = res
-    print(f"done preparing change_block for pos {index}...")
+    print(f"done preparing cracktool_block for index {index} of 16...")
     return block
 
 def encode_to_b64_url(byte_arr: bytes) -> str: 
     tmp = base64.b64encode(byte_arr)
     return parse.quote(tmp, safe='')
 
-
 def send_request(encoded_str: str):
     BASE_URL = "http://gruenau2.informatik.hu-berlin.de:8888/store_secret/?secret="
-
     return requests.get(BASE_URL + encoded_str)
 
 def get_blocks(hex_str: str):
@@ -111,9 +116,7 @@ def get_blocks(hex_str: str):
 def bytes_to_hex_str(byte_arr: bytes):
     hex_str = ""
 
-    # print the bytes of the decoded secret
-    for i, byte in enumerate(byte_arr):
-        # print(f"{i} : {format(byte, '02x')}")
+    for byte in byte_arr:
         hex_str += format(byte, '02x')
 
     return hex_str
