@@ -1,5 +1,5 @@
 .DS_STORE
 ./vscode/
-./itsec_lab2/bin/
-./itsec_lab2/lib/
+bin/
+lib/
 pyvenv.cfg
