@@ -4,7 +4,8 @@ import requests
 import time
 import base64
 
-
+NEW_PLAIN = "'); DROP TABLE Jan;-- not the data you need"
+OLD_PLAIN = "Indeed it really works very fast and beautiful"
 
 #TODO: parallel + visual
 def main():
@@ -19,15 +20,24 @@ def main():
     # base64-decode the secret as bytes
     chiffre_bytes = base64.b64decode(url_decoded_str)
 
+    #new_plain_bytes = base64.b64encode(NEW_PLAIN)
+    #plain_blocks = get_blocks(new_plain_bytes)
+    rand_text = bytearray('apfelkuchenapfel', encoding="ascii")
     blocks = get_blocks(chiffre_bytes)
 
     result = ""
     #hier bis -1 oder 0? erster ist ja der IV glaube reicht also bis 0
-    for i in range(len(blocks)-1, 0, -1):
-        plain_block = crack(blocks[i], blocks[i-1])
-        result = plain_block.decode('utf-8') + result
+    #for i in range(len(blocks)-1, 0, -1):
+    #    plain_block = crack(blocks[i], blocks[i-1])
+    #    result = plain_block.decode('utf-8') + result
     
-    print(result)
+    #print(result)
+
+    intermediate_block = crack2(blocks[3], blocks[2])
+    new_previous_block = transform(intermediate_block["IB"], rand_text)
+    print(intermediate_block)
+    #result = crack(blocks[3], new_previous_block)
+    #print(result.decode('utf-8'))
 
     end = time.time()
     print(f"total time: {end-start}")
@@ -59,6 +69,43 @@ def crack(crack_block: bytes, chiffre_block: bytes):
                 break
 
     return plain_block
+
+
+#crack ist welcher gerade geknackt wird -> wir berechnen dessen IS
+def crack2(crack_block: bytes, chiffre_block: bytes):
+
+    Session = requests.Session()
+    changable_block = bytearray(16)
+    intermediate_block = bytearray(16)    
+    plain_block = bytearray(16)    
+    padding = 1
+
+    print(f"attempting crack for block: {crack_block}")
+
+    for byte in range(15, -1, -1):
+        
+        #testing all the possibilities
+        for i in range(0, 256):
+            changable_block[byte] = i
+            url = encode_to_b64_url(changable_block + crack_block)
+            res = send_request(url, Session)
+
+            if res == 200:          
+                intermediate_block[byte] = changable_block[byte] ^ padding
+                plain_block[byte] = chiffre_block[byte] ^ intermediate_block[byte]
+                #setup next iteration       
+                changable_block = configure_changable_block(padding+1, intermediate_block)
+                padding+=1
+                break
+
+    return {"IB": intermediate_block, "PB": plain_block}
+
+def transform(intermediate_block: bytes, plain_block:bytes):
+    previous_block = bytearray(16)
+    for byte in range(15, -1, -1):
+        previous_block[byte] = intermediate_block[byte]^plain_block[byte]
+    
+    return previous_block
 
 
 #needed for sending requests

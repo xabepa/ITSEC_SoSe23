@@ -39,7 +39,6 @@ def main():
                 cracktool_block=cracktool_block,
                 index=i,
                 intermed_arr=intermed_arr
-            
             )
             
             # save new plaintext character and new intermediate array value for next iteration
