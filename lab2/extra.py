@@ -4,6 +4,8 @@ import requests
 import time
 import base64
 
+NEW_PLAIN = "'); DROP TABLE Jan;-- not the data you need....."
+
 #TODO: parallel
 def main():
     start = time.time()
@@ -20,14 +22,39 @@ def main():
     # turns bytes into 16 byte sized chunks
     blocks = get_blocks(chiffre_bytes)
 
-    result = ""
-    #hier bis -1 oder 0? erster ist ja der IV glaube reicht also bis 0
-    for i in range(len(blocks)-1, 0, -1):
-        cracked_block = crack(blocks[i], blocks[i-1])
-        result = cracked_block["PB"].decode('utf-8') + result
+
+    new_text = bytes(NEW_PLAIN, encoding="ascii")
+    new_text_blocks = get_blocks(new_text)
     
-    #weiß jetzt nicht ob result am ende ein /newline zeichen hat oder nicht
+    new_chiffre_blocks = [None] * len(blocks)
+    
+    new_chiffre_blocks[3] = blocks[3]
+    print(new_chiffre_blocks[3])
+    
+    new_chiffre_blocks[2] = transform(crack(blocks[3], blocks[2])["IB"], new_text_blocks[2])  
+    print(new_chiffre_blocks[2])
+
+    new_chiffre_blocks[1] = transform(crack(new_chiffre_blocks[2], blocks[1])["IB"], new_text_blocks[1])
+    print(new_chiffre_blocks[1])
+
+    new_chiffre_blocks[0] = transform(crack(new_chiffre_blocks[1], blocks[0])["IB"], new_text_blocks[0])
+    print(new_chiffre_blocks[0])
+    
+    #das problem ist new chiffre block ist eine liste von 
+    result = bytearray
+    for i in range(0, len(new_chiffre_blocks)-1):
+        result.extend(new_chiffre_blocks[i])
+    
     print(result)
+
+    #Überprüfung
+    #new_result = ""
+    #new_block_list = [None] * len(blocks)
+    #for i in range(len(blocks)-1, 0, -1):
+    #    new_block_list[i] = crack(new_chiffre_blocks[i], new_chiffre_blocks[i-1])
+    #    new_result = new_block_list[i]["PB"].decode('utf-8') + new_result
+
+    #print(new_result)
 
     end = time.time()
     #print(f"total time: {end-start}")
