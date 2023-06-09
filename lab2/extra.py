@@ -28,7 +28,7 @@ def main():
     
     new_chiffre_blocks = [None] * len(blocks)
     
-    new_chiffre_blocks[3] = blocks[3]
+    new_chiffre_blocks[3] = bytearray(blocks[3])
     print(new_chiffre_blocks[3])
     
     new_chiffre_blocks[2] = transform(crack(blocks[3], blocks[2])["IB"], new_text_blocks[2])  
@@ -41,11 +41,21 @@ def main():
     print(new_chiffre_blocks[0])
     
     #das problem ist new chiffre block ist eine liste von 
-    result = bytearray
+    result = bytearray()
     for i in range(0, len(new_chiffre_blocks)-1):
-        result.extend(new_chiffre_blocks[i])
+       result.extend(new_chiffre_blocks[i])
     
+    #bytearray
     print(result)
+
+    #bytearay -> base64
+    result_base64_encode = base64.b64encode(result)
+
+    #base 64 -> url 
+    #haben aber noch / drinnen
+    result_url_encode = parse.quote(result_base64_encode)
+
+    print(result_base64_encode)
 
     #Überprüfung
     #new_result = ""
