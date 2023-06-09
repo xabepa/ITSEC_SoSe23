@@ -22,40 +22,30 @@ def main():
     # turns bytes into 16 byte sized chunks
     blocks = get_blocks(chiffre_bytes)
 
-
     new_text = bytes(NEW_PLAIN, encoding="ascii")
     new_text_blocks = get_blocks(new_text)
     
     new_chiffre_blocks = [None] * len(blocks)
     
     new_chiffre_blocks[3] = bytearray(blocks[3])
-    print(new_chiffre_blocks[3])
     
     new_chiffre_blocks[2] = transform(crack(blocks[3], blocks[2])["IB"], new_text_blocks[2])  
-    print(new_chiffre_blocks[2])
 
     new_chiffre_blocks[1] = transform(crack(new_chiffre_blocks[2], blocks[1])["IB"], new_text_blocks[1])
-    print(new_chiffre_blocks[1])
 
     new_chiffre_blocks[0] = transform(crack(new_chiffre_blocks[1], blocks[0])["IB"], new_text_blocks[0])
-    print(new_chiffre_blocks[0])
     
-    #das problem ist new chiffre block ist eine liste von 
     result = bytearray()
     for i in range(0, len(new_chiffre_blocks)-1):
        result.extend(new_chiffre_blocks[i])
     
     #bytearray
-    print(result)
+    #print(result)
 
-    #bytearay -> base64
-    result_base64_encode = base64.b64encode(result)
+    #bytearay -> base64/url
+    new_secret = encode_to_b64_url(result)
 
-    #base 64 -> url 
-    #haben aber noch / drinnen
-    result_url_encode = parse.quote(result_base64_encode)
-
-    print(result_base64_encode)
+    print(new_secret)
 
     #Überprüfung
     #new_result = ""
