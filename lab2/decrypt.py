@@ -1,10 +1,11 @@
 import base64
+from pydoc import plain
 from urllib import parse
 import requests
 
 # this is the original secret
 SECRET = "2QicDQHnGmRuZys0M5JcwCSTeFNXvVm%2FSsG1vaEkIZU1OiGgpLJTdbRO2beA831a0xsatfOy01N38W1RidzrXA%3D%3D"
-
+SECRET = "FXO83zEgzudsM6hirSrtKkpEHNnGKntpWJNkaGSb%2Bd9hOm%2B966UWeqRf1NTwmnpd0xsatfOy01N38W1RidzrXA%3D%3D"
 
 def main():
     # url-decode the secret (remove the %2F and %3D)
@@ -76,6 +77,8 @@ def crack_byte_of_cipher_block(previous_cipher_block: str, cipher_block: str, cr
 
             # reverse the XOR with the intermediate byte and the leading block byte to get the plaintext byte
             plaintext_byte = intermed_byte ^ previous_cipher_block[-index]
+
+            print(f"plaintext byte is {plaintext_byte}")
 
             # we need a bytearray which represents intermediate array to calculate change_block values for next iteration
             # print(f"XOR of found byte {format(matched_value, '02x')} ({format(matched_value, '#010b')}) and {format(index, '02x')} ({format(index, '#010b')}) is: {format(matched_value ^ index, '02x')} ({format(matched_value ^ index, '#010b')})")

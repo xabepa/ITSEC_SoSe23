@@ -1,10 +1,8 @@
-from multiprocessing import Pool
 from urllib import parse
 import requests
 import time
 import base64
 
-#TODO: parallel
 def main():
     start = time.time()
 
@@ -26,14 +24,14 @@ def main():
         cracked_block = crack(blocks[i], blocks[i-1])
         result = cracked_block["PB"].decode('utf-8') + result
     
-    #weiß jetzt nicht ob result am ende ein /newline zeichen hat oder nicht
+    #weiss jetzt nicht ob result am ende ein /newline zeichen hat oder nicht
     print(result)
 
     end = time.time()
     #print(f"total time: {end-start}")
 
 #crack ist welcher gerade geknackt wird -> wir berechnen dessen IS
-#chiffre_block ist der Block vor Crack Block welcher für das xpr gebraucht wird
+#chiffre_block ist der Block vor Crack Block welcher fuer das xpr gebraucht wird
 def crack(crack_block: bytes, chiffre_block: bytes):
 
     Session = requests.Session()

