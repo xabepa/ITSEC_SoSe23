@@ -1,0 +1,10 @@
+42 abba
+8 digits
+threads: 1m1s
+double: 56s
+single:
+
+10 digits
+(4) threads: 2m17s
+double: 2m3s
+rust:

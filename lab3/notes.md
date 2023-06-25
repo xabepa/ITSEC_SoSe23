@@ -25,7 +25,7 @@ g^0 * (g^2)^0  * ((g^2)^2)^1
 
 montgomery multiplikation
 
-#### Problem 1: Modulo
+#### Problem 2: Modulo
 g^a mod p wird dann g'^a' mod p'
 
 verändert die basis von mod, computer kann besser umgehen mit 2^n
