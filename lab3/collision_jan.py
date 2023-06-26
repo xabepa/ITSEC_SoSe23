@@ -1,0 +1,73 @@
+from operator import mod
+import sys
+import time
+from Crypto.Hash import SHA3_224
+
+p = int("FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF",16)
+g = 2
+COLLISION_LEN = 10
+
+def main():
+    start = time.time()
+
+    # grab user input and change base from hex to dec
+    pub_key_A = int(sys.argv[1], 16)
+    pub_key_B = int(sys.argv[2], 16)
+
+    private_key = 1 # loop variable
+
+    dict_A = {} # python dict uses hashtable under the hood
+    dict_B = {} # same
+
+    old_key_A = pub_key_A
+    old_key_B = pub_key_B
+    
+    # main hash calculation and collision lookup loop
+    while True:
+        hash_A, key_A = calculate_key_hash(pub_key_A, private_key)
+        pub_key_A = old_key_A * pub_key_A
+        dict_A[hash_A] = key_A
+        
+        hash_B, key_B = calculate_key_hash(pub_key_B, private_key)
+        pub_key_B = old_key_B * pub_key_B
+        dict_B[hash_B] = key_B
+
+        private_key += 1
+
+        if hash_A in dict_B:
+            print(f"{key_A} {dict_B[hash_A]}")
+            break
+        
+        if hash_B in dict_A:
+            print(f"{dict_A[hash_B]} {key_B}")
+            break
+
+        if private_key % 10000 == 0:
+            print(f"still alive. loop variable is: {private_key}\naiming for {COLLISION_LEN} digits\nrunning for: {time.time()-start}\n")
+        
+
+def calculate_key_hash(pub_key, private_key):
+
+    # key = (pow(pub_key, private_key, p)) # builtin python power and mod
+    key = mod(pub_key, p)
+    key = str(format(key, "02x")).encode()
+
+    key_hash = SHA3_224.new(key).hexdigest() #hash from key
+    key_hash_prefix = key_hash[:COLLISION_LEN] 
+
+    return (key_hash_prefix, hex(private_key)[2:])
+
+def calculate_key_hash2(pub_key, private_key, old_key):
+
+    # old_key is A^n, so pub Key * old_key == A^n * A == A^n+1
+    old_key = pub_key * old_key
+    mod_key = old_key % p
+    # print("done")
+    hex_key = str(format(mod_key, "02x")).encode()
+
+    key_hash = SHA3_224.new(hex_key).hexdigest() #hash from key
+    key_hash_prefix = key_hash[:COLLISION_LEN] 
+
+    return (key_hash_prefix, hex(private_key)[2:], old_key)
+
+main()
