@@ -58,6 +58,8 @@ def test_data(data: dict):
         print(f"calculated K == test K? --> {K_calc == K_test}")
         print(f"calculated H == test H? --> {H_calc == H_test}")
     else:
+        print(f"a = {data['a']}")
+        print(f"b = {data['b']}")
         print(f"A = {format(A_calc, '02x')}")
         print(f"B = {format(B_calc, '02x')}")
         print(f"K = {format(K_calc, '02x')}")
